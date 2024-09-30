@@ -3,12 +3,13 @@
 //
 
 #include <gtest/gtest.h>
+#include <dal/platform/platform.hpp>
 #include <dal/currency/currencydata.hpp>
 #include <dal/time/holidays.hpp>
 
 using namespace Dal;
 
-TEST(CurrencyDataTest, TestFactRead) {
+TEST(CurrencyTest, TestFactRead) {
     ASSERT_EQ(Ccy::Conventions::LiborFixDays()(Ccy_("CNY")), 1);
     ASSERT_EQ(Ccy::Conventions::LiborFixDays()(Ccy_("USD")), 2);
 
@@ -19,6 +20,6 @@ TEST(CurrencyDataTest, TestFactWrite) {
     Ccy::Conventions::LiborFixDays().XWrite()(Ccy_("EUR"), 1);
     ASSERT_EQ(Ccy::Conventions::LiborFixDays()(Ccy_("EUR")), 1);
 
-    Ccy::Conventions::LiborFixHolidays().XWrite()(Ccy_("CNY"), Holidays_("CN.SH"));
-    ASSERT_EQ(Ccy::Conventions::LiborFixHolidays()(Ccy_("CNY")).String(), "CN.SH");
+    Ccy::Conventions::LiborFixHolidays().XWrite()(Ccy_("CNY"), Holidays_("CN.SSE"));
+    ASSERT_EQ(Ccy::Conventions::LiborFixHolidays()(Ccy_("CNY")).String(), "CN.SSE");
 }

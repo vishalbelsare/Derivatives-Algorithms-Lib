@@ -3,9 +3,8 @@
 //
 
 #include <dal/platform/platform.hpp>
-#include <dal/protocol/conventions.hpp>
 #include <dal/platform/strict.hpp>
-
+#include <dal/protocol/conventions.hpp>
 #include <dal/time/datetime.hpp>
 #include <dal/time/holidays.hpp>
 #include <dal/currency/currencydata.hpp>

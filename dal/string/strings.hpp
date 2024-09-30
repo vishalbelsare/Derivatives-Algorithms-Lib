@@ -7,6 +7,10 @@
 #include <iostream>
 #include <numeric>
 #include <string>
+#include <utility>
+#include <dal/platform/host.hpp>
+
+#define BAREWORD(word) static const String_ word(#word);
 
 namespace Dal {
 
@@ -22,13 +26,13 @@ namespace Dal {
     struct ci_traits : std::char_traits<char> {
         using _E = char;
 
-        static inline _E SortVal(const _E& _x) { return static_cast<char>((_x & 128) | CI_ORDER[_x & 127]); }
+        static FORCE_INLINE _E SortVal(const _E& _x) { return static_cast<char>((_x & 128) | CI_ORDER[_x & 127]); }
 
-        static inline bool eq(const _E& x, const _E& y) { return SortVal(x) == SortVal(y); }
+        static FORCE_INLINE bool eq(const _E& x, const _E& y) { return SortVal(x) == SortVal(y); }
 
-        static inline bool lt(const _E& x, const _E& y) { return SortVal(x) < SortVal(y); }
+        static FORCE_INLINE bool lt(const _E& x, const _E& y) { return SortVal(x) < SortVal(y); }
 
-        static inline int compare(const _E* p1, const _E* p2, size_t n) {
+        static FORCE_INLINE int compare(const _E* p1, const _E* p2, size_t n) {
             while (n-- > 0) {
                 if (SortVal(*p1) < SortVal(*p2))
                     return -1;
@@ -95,6 +99,7 @@ namespace Dal {
         int ToInt(const String_& src);
         String_ FromDouble(double src);
         String_ FromInt(int src);
+        String_ FromBool(bool src);
         String_ Condensed(const String_& src);
         bool Equivalent(const String_& lhs, const char* rhs);
         String_ NextName(const String_& name);
@@ -102,24 +107,26 @@ namespace Dal {
         struct Joiner_ {
             String_ sep_;
             bool skipEmpty_;
-            explicit Joiner_(const String_& sep, bool skip_empty = true) : sep_(sep), skipEmpty_(skip_empty) {}
+            explicit Joiner_(String_ sep, bool skip_empty = true) : sep_(std::move(sep)), skipEmpty_(skip_empty) {}
 
             String_ operator()(const String_& so_far, const String_& more) const {
                 if (so_far.empty() && skipEmpty_)
                     return more;
                 if (more.empty() && skipEmpty_)
                     return so_far;
-                return String_(so_far + sep_ + more);
+                return so_far + sep_ + more;
             }
         };
 
         template <class C_> String_ Accumulate(const C_& vals, const String_& sep, bool skip_empty = true) {
             if (vals.empty())
-                return String_();
+                return {};
             return std::accumulate(++vals.begin(), vals.end(), *(vals.begin()), Joiner_(sep, skip_empty));
         }
+        String_ Uniquifier(const void* p);
     } // namespace String
 
     inline String_ ToString(int i) { return String::FromInt(i); }
+    inline String_ ToString(double i) { return String::FromDouble(i); }
 
 } // namespace Dal

@@ -2,11 +2,12 @@
 // Created by Cheng Li on 2017/12/29.
 //
 
+
+#include <functional>
+#include <gtest/gtest.h>
 #include <dal/platform/platform.hpp>
 #include <dal/math/vectors.hpp>
 #include <dal/utilities/algorithms.hpp>
-#include <functional>
-#include <gtest/gtest.h>
 
 using vector_t = Dal::Vector_<>;
 
@@ -44,7 +45,7 @@ TEST(AlgorithmsTest, TestTransformInplaceWithOther) {
     vector_t s = {1, 2, 3};
     vector_t o = {1, 2, 3};
 
-    Dal::Transform(&s, o, std::plus<>());
+    Dal::Transform(s, o, std::plus<>(), &s);
     for (int i = 0; i != s.size(); ++i) {
         ASSERT_DOUBLE_EQ(2. * (i + 1), s[i]);
     }
@@ -209,4 +210,12 @@ TEST(AlgorithmsTest, TestMinElement) {
     vector_t s1 = {1., 2., 3., 4., 5.};
     auto pos = Dal::MinElement(s1);
     ASSERT_DOUBLE_EQ(s1[0], *pos);
+}
+
+TEST(AlgorithmsTest, TestZip) {
+    vector_t s1 = {1., 2., 3., 4., 5.};
+    vector_t s2 = {2., 4., 6., 8., 10.};
+    auto s3 = Dal::Zip(s1, s2);
+    for(auto pair: s3)
+        ASSERT_DOUBLE_EQ(pair.first * 2.0, pair.second);
 }

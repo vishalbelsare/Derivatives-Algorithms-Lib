@@ -83,6 +83,13 @@ namespace Dal {
         return ret_val;
     }
 
+    template <class C_> Vector_<typename C_::value_type> Reverse(const C_& src) {
+        using vector_t = Vector_<typename C_::value_type>;
+        vector_t ret_val(src);
+        std::reverse(ret_val.begin(), ret_val.end());
+        return ret_val;
+    }
+
     template <class C_, class P_> C_ Filter(const C_& src, const P_& pred) {
         using element_t = decltype(*src.begin());
         C_ ret_val(src);
@@ -163,6 +170,11 @@ namespace Dal {
 
     template <class C_, class P_> bool AllOf(const C_& val, const P_& pred) {
         return std::all_of(val.begin(), val.end(), pred);
+    }
+
+    template<class C1_, class C2_> auto Zip(const C1_& v1, const C2_& v2)
+        -> Vector_<decltype(std::make_pair(v1.front(), v2.front()))> {
+        return Apply(std::make_pair<decltype(v1.front()), decltype(v2.front())>, v1, v2);
     }
 
 } // namespace Dal

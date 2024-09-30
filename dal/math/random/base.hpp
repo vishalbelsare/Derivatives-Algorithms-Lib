@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <dal/platform/platform.hpp>
 #include <dal/math/vectors.hpp>
 
 namespace Dal {
@@ -13,7 +12,8 @@ namespace Dal {
         virtual ~Random_() = default;
         virtual void FillUniform(Vector_<>* deviates) = 0;
         virtual void FillNormal(Vector_<>* deviates) = 0;
-        virtual Random_* Clone() const = 0;
-        virtual size_t NDim() const = 0;
+        virtual void SkipTo(size_t n_points) = 0;
+        [[nodiscard]] virtual Random_* Clone() const = 0;
+        [[nodiscard]] virtual size_t NDim() const = 0;
     };
 } // namespace Dal

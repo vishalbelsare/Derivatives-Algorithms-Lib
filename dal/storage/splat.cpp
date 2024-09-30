@@ -3,9 +3,10 @@
 //
 
 #include <algorithm>
+#include <map>
 #include <dal/platform/platform.hpp>
-#include <dal/storage/splat.hpp>
 #include <dal/platform/strict.hpp>
+#include <dal/storage/splat.hpp>
 #include <dal/math/cell.hpp>
 #include <dal/math/cellutils.hpp>
 #include <dal/storage/archive.hpp>
@@ -16,7 +17,6 @@
 #include <dal/utilities/file.hpp>
 #include <dal/utilities/functionals.hpp>
 #include <dal/utilities/numerics.hpp>
-#include <map>
 
 using std::map;
 using std::shared_ptr;
@@ -53,7 +53,7 @@ namespace Dal {
                     return val_.Cols();
                 int ret_val = 0;
                 for (const auto& c : children_)
-                    ret_val += Max(ret_val, c.second->Cols());
+                    ret_val += max(ret_val, c.second->Cols());
                 return 2 + ret_val;
             }
 
@@ -111,19 +111,21 @@ namespace Dal {
                 }
             }
 
-            void operator=(double d) override { SetScalar(d); }
-            void operator=(const Date_& d) override { SetScalar(d); }
-            void operator=(const String_& s) override { SetScalar(s); }
-            void operator=(const Vector_<>& v) override { SetVector(v); }
-            void operator=(const Vector_<int>& v) override { SetVector(v); }
-            void operator=(const Vector_<bool>& v) override { SetVector(v); }
-            void operator=(const Vector_<String_>& v) override { SetVector(v); }
-            void operator=(const Vector_<Date_>& v) override { SetVector(v); }
-            void operator=(const Vector_<DateTime_>& v) override { SetVector(v); }
-            void operator=(const Matrix_<>& m) override { SetMatrix(m); }
-            void operator=(const Matrix_<String_>& m) override { SetMatrix(m); }
-            void operator=(const Matrix_<Cell_>& m) override { SetMatrix(m); }
-            void operator=(const Dictionary_& d) override {
+            XSplat_& operator=(double d) override { SetScalar(d); return *this; }
+            XSplat_& operator=(const Date_& d) override { SetScalar(d); return *this; }
+            XSplat_& operator=(const DateTime_& d) override { SetScalar(d); return *this; }
+            XSplat_& operator=(const String_& s) override { SetScalar(s); return *this; }
+            XSplat_& operator=(const Vector_<>& v) override { SetVector(v); return *this; }
+            XSplat_& operator=(const Vector_<int>& v) override { SetVector(v); return *this; }
+            XSplat_& operator=(const Vector_<bool>& v) override { SetVector(v); return *this; }
+            XSplat_& operator=(const Vector_<String_>& v) override { SetVector(v); return *this; }
+            XSplat_& operator=(const Vector_<Date_>& v) override { SetVector(v); return *this; }
+            XSplat_& operator=(const Vector_<DateTime_>& v) override { SetVector(v); return *this; }
+            XSplat_& operator=(const Vector_<Cell_>& v) override { SetVector(v); return *this; }
+            XSplat_& operator=(const Matrix_<>& m) override { SetMatrix(m); return *this; }
+            XSplat_& operator=(const Matrix_<String_>& m) override { SetMatrix(m); return *this; }
+            XSplat_& operator=(const Matrix_<Cell_>& m) override { SetMatrix(m); return *this; }
+            XSplat_& operator=(const Dictionary_& d) override {
                 val_.Resize(d.Size(), 2);
                 int ir = 0;
                 for (const auto& k_v : d) {
@@ -131,20 +133,26 @@ namespace Dal {
                     val_(ir, 1) = k_v.second;
                     ++ir;
                 }
+                return *this;
             }
         };
 
         // --------------------------------------
         // helper functions for UnSplat
 
-        double ExtractDouble(const Cell_& src) {
-            switch (src.type_) {
-            case Cell_::Type_ ::NUMBER:
-                return src.d_;
-            case Cell::Type_::STRING:
-                return String::ToDouble(src.s_);
+        struct ExtractDouble_ {
+            double operator()(double d) const { return d; }
+            double operator()(const String_& s) const {
+                return String::ToDouble(s);
             }
-            THROW("Can't create a number from a non-numeric type");
+            template<class T_> double operator()(T_) const {
+                THROW("Can't create a number from a non-numeric type");
+            }
+        };
+
+        double ExtractDouble(const Cell_& src) {
+            static const ExtractDouble_ visitor;
+            return src.Visit(visitor);
         }
 
         int ExtractInt(const Cell_& src) {
@@ -154,49 +162,50 @@ namespace Dal {
             return ret_val;
         }
 
+        struct ExtractBool_ {
+            bool operator()(bool b) const { return b; }
+            bool operator()(const String_& s) const { return String::ToBool(s); }
+            template<class T_> bool operator()(T_) const { THROW("Can't create a boolean from cell"); }
+        };
+
         bool ExtractBool(const Cell_& src) {
-            switch (src.type_) {
-            case Cell::Type_ ::BOOLEAN:
-                return src.b_;
-            case Cell::Type_::STRING:
-                return String::ToBool(src.s_);
-            }
-            THROW("Can't construct a boolean flag from a non-boolean value");
+            static const ExtractBool_ visitor;
+            return src.Visit(visitor);
         }
 
+        struct ExtractString_ {
+            const String_& operator()(const String_& s) const { return s; }
+            const String_& operator()(std::monostate) const {
+                static const String_ EMPTY; return EMPTY;
+            }	// should only occur in the interior of a table
+            template<class T_> const String_& operator()(T_) const { THROW("Can't create a string from cell"); }
+        };
         String_ ExtractString(const Cell_& src) {
-            switch (src.type_) {
-            case Cell::Type_::EMPTY:
-                return String_();
-            case Cell::Type_::STRING:
-                return src.s_;
-            }
-            THROW("Can't construct a String_ from a non-text value");
+            static const ExtractString_ visitor;
+            return src.Visit(visitor);
         }
 
+        struct ExtractDate_ {
+            Date_ operator()(const String_& s) const { return Date::FromString(s); }
+            Date_ operator()(const Date_& dt) const { return dt; }
+            Date_ operator()(std::monostate) const { return Date_(); }	// should only occur in the interior of a table
+            template<class T_> Date_ operator()(T_) const { THROW("Can't create a date from cell"); }
+        };
         Date_ ExtractDate(const Cell_& src) {
-            switch (src.type_) {
-            case Cell::Type_::EMPTY:
-                return Date_();
-            case Cell::Type_::STRING:
-                return Date::FromString(src.s_);
-            case Cell::Type_::DATE:
-                return src.dt_.Date();
-            }
-            THROW("Can't construct a Date_ from non-date value");
+            static const ExtractDate_ visitor;
+            return src.Visit(visitor);
         }
 
+        struct ExtractDateTime_ {
+            DateTime_ operator()(const String_& s) const { return DateTime::FromString(s); }
+            DateTime_ operator()(const Date_& dt) const { return DateTime_(dt, 0.0); }	// allow promotion
+            DateTime_ operator()(const DateTime_& dt) const { return dt; }
+            DateTime_ operator()(std::monostate) const { return DateTime_(); }	// should only occur in the interior of a table
+            template<class T_> DateTime_ operator()(T_) const { THROW("Can't create a datetime from cell"); }
+        };
         DateTime_ ExtractDateTime(const Cell_& src) {
-            switch (src.type_) {
-            case Cell::Type_::EMPTY:
-                return DateTime_();
-            case Cell::Type_::STRING:
-                return DateTime::FromString(src.s_);
-            case Cell::Type_::DATE:
-            case Cell::Type_::DATETIME:
-                return src.dt_;
-            }
-            THROW("Can't construct a Date_ from a non-date value");
+            static const ExtractDateTime_ visitor;
+            return src.Visit(visitor);
         }
 
         template <class R_, class T_> auto TranslateRange(const R_& range, const T_& translate) {
@@ -218,22 +227,17 @@ namespace Dal {
 
             String_ Type() const override {
                 const Cell_& c = data_(rowStart_, colStart_);
-                if (c.type_ != Cell::Type_::STRING)
-                    return String_();
-                auto pt = c.s_.find(OBJECT_PREFACE);
-                if (pt == String_::npos)
-                    return String_();
-                return c.s_.substr(pt + OBJECT_PREFACE.size());
+                if (auto p = std::get_if<String_>(&c.val_))
+                    if (auto pt = p->find(OBJECT_PREFACE); pt != String_::npos)
+                        return p->substr(pt + OBJECT_PREFACE.size());
+                return {};
             }
 
             String_ Tag() const {
                 const Cell_& c = data_(rowStart_, colStart_);
-                if (c.type_ != Cell::Type_::STRING)
-                    return String_();
-                if (c.s_.substr(0, TAG_PREFACE.size()) != TAG_PREFACE)
-                    return String_();
-                auto pt = c.s_.find(OBJECT_PREFACE);
-                return c.s_.substr(0, pt);
+                if (auto p = std::get_if<String_>(&c.val_); p && p->substr(0, TAG_PREFACE.size()) == TAG_PREFACE)
+                    return p->substr(0, p->find(OBJECT_PREFACE));
+                return {};
             }
 
             const View_& Child(const String_& name) const override {
@@ -303,6 +307,7 @@ namespace Dal {
             Vector_<DateTime_> AsDateTimeVector() const override {
                 return TranslateRange(VectorRange(), ExtractDateTime);
             }
+            Vector_<Cell_> AsCellVector() const override { return TranslateRange(VectorRange(), Identity_<Cell_>()); }
 
             int MatrixStop() const {
                 for (int ret_val = colStart_ + 1;;) {
@@ -385,7 +390,7 @@ namespace Dal {
             Vector_<Vector_<Cell_>> data = Apply(AsFunctor(SplitLine), lines);
             int cols = 0;
             for (const auto& d : data)
-                cols = Max(cols, int(d.size()));
+                cols = max(cols, int(d.size()));
             Matrix_<Cell_> ret_val(data.size(), cols);
             for (int i = 0; i < data.size(); ++i)
                 std::copy(data[i].begin(), data[i].end(), ret_val.Row(i).begin());
