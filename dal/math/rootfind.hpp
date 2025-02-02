@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cmath>
-#include <dal/platform/platform.hpp>
 
 namespace Dal {
     class RootFinder_ {
@@ -33,7 +32,7 @@ namespace Dal {
         double d_;
 
         friend class Brent_;
-        explicit BracketedBrent_(double tol) : tol_(tol) {}
+        explicit BracketedBrent_(double tol) : tol_(tol), bisect_(false), d_(0.0) {}
 
         void Initialize(const std::pair<double, double>& low, const std::pair<double, double>& high);
 
@@ -42,7 +41,7 @@ namespace Dal {
 
         double NextX() override;
         void PutY(double y) override;
-        double BracketWidth() const override { return std::fabs(a_.first - b_.first); }
+        [[nodiscard]] double BracketWidth() const override { return std::fabs(a_.first - b_.first); }
     };
 
     class Brent_ : public RootFinder_ {
@@ -53,9 +52,9 @@ namespace Dal {
         BracketedBrent_ engine_;
 
     public:
-        Brent_(double guess, double tol = Dal::EPSILON, double step_size = 0.0);
+        explicit Brent_(double guess, double tol = Dal::EPSILON, double step_size = 0.0);
         double NextX() override;
         void PutY(double y) override;
-        double BracketWidth() const override;
+        [[nodiscard]] double BracketWidth() const override;
     };
 } // namespace Dal

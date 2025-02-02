@@ -2,12 +2,12 @@
 // Created by wegam on 2020/12/19.
 //
 
-#include "pseudorandom.hpp"
-#include <cmath>
+#include <dal/platform/platform.hpp>
+#include <dal/platform/strict.hpp>
+#include <dal/math/random/pseudorandom.hpp>
 #include <dal/math/specialfunctions.hpp>
 #include <dal/math/vectors.hpp>
 #include <dal/platform/host.hpp>
-#include <dal/platform/strict.hpp>
 #include <dal/utilities/exceptions.hpp>
 
 namespace Dal {
@@ -30,7 +30,7 @@ namespace Dal {
             FORCE_INLINE void Fill(SRC_* src, Vector_<>::iterator dst_begin, Vector_<>::iterator dst_end) {
                 for (auto pn = dst_begin; pn != dst_end; ++pn) {
                     double f = src->NextUniform();
-                    *pn = InverseNCDF(f);
+                    *pn = InverseNCDF(f, src->precise_, src->precise_);
                 }
             }
         } // namespace RWT
@@ -64,8 +64,8 @@ namespace Dal {
                 return MUL * (2 * ret_val + 1); // avoid 0.0 and 1.0
             }
 
-            explicit ShuffledIRN_(int seed, size_t n_dim = 1)
-                : PseudoRandom_(n_dim), seed_(seed), irn_(M_), shuffle_(S_), irl_(0) {
+            explicit ShuffledIRN_(int seed, size_t n_dim = 1, bool precise = false)
+                : PseudoRandom_(n_dim, precise), seed_(seed), irn_(M_), shuffle_(S_), irl_(0) {
                 const unsigned MASK = 0x1F2E3D4C;
                 const unsigned MUL = 17;
                 // initialize IRN_
@@ -83,7 +83,7 @@ namespace Dal {
 
             [[nodiscard]] PseudoRandom_* Clone() const override { return new ShuffledIRN_(seed_, cache_.size()); }
 
-            void SkipTo(size_t n_points) override {}
+            void SkipTo(size_t n_paths) override {}
         };
 
         constexpr const double m1_ = 4294967087;
@@ -98,8 +98,8 @@ namespace Dal {
             const double a_, b_;
             double xn_, xn1_, xn2_, yn_, yn1_, yn2_;
 
-            MRG32k32a_(const unsigned& a = 12345, const unsigned& b = 12346, size_t n_dim = 1)
-                : PseudoRandom_(n_dim), a_(a), b_(b) {
+            explicit MRG32k32a_(const unsigned& a = 12345, const unsigned& b = 12346, size_t n_dim = 1, bool precise = false)
+                : PseudoRandom_(n_dim, precise), a_(a), b_(b) {
                 Reset();
             }
 
@@ -140,11 +140,9 @@ namespace Dal {
                 return new MRG32k32a_(static_cast<unsigned>(a_), static_cast<unsigned>(b_), cache_.size());
             }
 
-            void SkipTo(size_t n_points) override {
+            void SkipTo(size_t n_paths) override {
+                size_t n_points = n_paths * NDim();
                 Reset();
-
-                if (n_points < 0)
-                    return;
 
                 if (n_points & 1)
                     n_points = (n_points - 1) / 2;
@@ -238,14 +236,21 @@ namespace Dal {
 
 #include <dal/auto/MG_RNGType_enum.inc>
 
-    PseudoRandom_* New(const RNGType_& type, int seed, size_t n_dim) {
+    PseudoRandom_* New(const RNGType_& type, int seed, size_t n_dim, bool precise) {
         PseudoRandom_* ret;
         if (type == RNGType_("IRN"))
-            ret = new ShuffledIRN_<55, 31, 128>(seed, n_dim);
+            ret = new ShuffledIRN_<55, 31, 128>(seed, n_dim, precise);
         else if (type == RNGType_("MRG32"))
-            ret = new MRG32k32a_(seed, seed + 1, n_dim);
+            ret = new MRG32k32a_(seed, seed + 1, n_dim, precise);
         else
             THROW("RNG type is not recognized");
         return ret;
+    }
+
+#include <dal/auto/MG_PseudoRSG_v1_Read.inc>
+#include <dal/auto/MG_PseudoRSG_v1_Write.inc>
+
+    void PseudoRSG_::Write(Archive::Store_& dst) const {
+        PseudoRSG_v1::XWrite(dst, name_, seed_, ndim_, precise_);
     }
 } // namespace Dal

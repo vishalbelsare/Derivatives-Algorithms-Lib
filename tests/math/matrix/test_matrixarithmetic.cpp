@@ -2,14 +2,15 @@
 // Created by Cheng Li on 2018/8/14.
 //
 
+#include <gtest/gtest.h>
+#include <dal/platform/platform.hpp>
 #include <dal/math/matrix/matrixarithmetic.hpp>
 #include <dal/math/matrix/matrixs.hpp>
-#include <gtest/gtest.h>
 
 using namespace Dal;
 
 #ifdef NDEBUG
-TEST(MatrixArithmeticTest, TestVols) {
+TEST(MatrixTest, TestVols) {
     const int n = 3;
     Matrix_<> cov(n, n);
 

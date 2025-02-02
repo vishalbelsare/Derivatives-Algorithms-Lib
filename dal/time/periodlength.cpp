@@ -3,9 +3,10 @@
 //
 
 #include <dal/platform/platform.hpp>
+#include <dal/platform/strict.hpp>
+#include <dal/time/periodlength.hpp>
 #include <dal/time/date.hpp>
 #include <dal/utilities/exceptions.hpp>
-#include <dal/time/periodlength.hpp>
 
 namespace Dal {
 #include <dal/auto/MG_PeriodLength_enum.inc>
@@ -30,7 +31,7 @@ namespace Dal {
         int mm = Month(start) + step.Months();
         while (mm > 12)
             ++yy, mm -= 12;
-        int dd = Min(Day(start), DaysInMonth(yy, mm));
+        int dd = std::min(Day(start), DaysInMonth(yy, mm));
         return Date_(yy, mm, dd);
     }
 } // namespace Dal

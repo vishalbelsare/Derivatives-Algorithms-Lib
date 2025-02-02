@@ -2,8 +2,9 @@
 // Created by wegam on 2021/1/2.
 //
 
-#include <dal/math/rootfind.hpp>
+#include <dal/platform/platform.hpp>
 #include <dal/platform/strict.hpp>
+#include <dal/math/rootfind.hpp>
 #include <dal/utilities/exceptions.hpp>
 
 namespace Dal {
@@ -61,7 +62,7 @@ namespace Dal {
 
     Brent_::Brent_(double guess, double tol, double step_size)
         : phase_(Phase_::INITIALIZE), increasing_(true),
-          stepSize_(step_size > 0.0 ? step_size : 0.1 * Max(0.01, std::fabs(guess))), trialX_(guess),
+          stepSize_(step_size > 0.0 ? step_size : 0.1 * std::max(0.01, std::fabs(guess))), trialX_(guess),
           knownPoint_(Dal::INF, Dal::INF), engine_(tol) {}
 
     double Brent_::NextX() { return phase_ == Phase_::BRACKETED ? engine_.NextX() : trialX_; }

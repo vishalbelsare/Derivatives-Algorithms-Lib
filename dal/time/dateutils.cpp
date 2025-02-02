@@ -2,11 +2,10 @@
 // Created by wegam on 2020/10/25.
 //
 
+#include <regex>
 #include <dal/platform/platform.hpp>
 #include <dal/platform/strict.hpp>
 #include <dal/time/dateutils.hpp>
-#include <regex>
-
 #include <dal/time/date.hpp>
 #include <dal/utilities/exceptions.hpp>
 
@@ -45,6 +44,13 @@ namespace Dal {
         REQUIRE(code >= 'A' && code <= 'Z', "Futures code must be an uppercase letter");
         const int ret_val = MONTHS[code - 'A'];
         REQUIRE(ret_val > 0, "Invalid futures code");
+        return ret_val;
+    }
+
+    Date_ Date::Today() {
+        int yy, mm, dd;
+        Host::LocalTime(&yy, &mm, &dd);
+        Date_ ret_val(yy, mm, dd);
         return ret_val;
     }
 

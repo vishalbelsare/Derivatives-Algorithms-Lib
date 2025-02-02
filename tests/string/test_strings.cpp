@@ -3,7 +3,7 @@
 //
 
 #include <gtest/gtest.h>
-#include <dal/platform/strict.hpp>
+#include <dal/platform/platform.hpp>
 #include <dal/math/vectors.hpp>
 #include <dal/string/strings.hpp>
 
@@ -172,4 +172,10 @@ TEST(StringsTest, TestAccumulate) {
     Vector_<String_> c = {String_("1"), String_("2"), String_("3")};
     auto s1 = Accumulate(c, String_(","));
     ASSERT_EQ(s1, "1,2,3");
+}
+
+TEST(StringsTest, TestFind) {
+    String_ s1 = "Hello";
+    ASSERT_EQ(s1.find("HELLO"), 0);
+    ASSERT_GT(s1.find("SHELLO"), s1.size());
 }

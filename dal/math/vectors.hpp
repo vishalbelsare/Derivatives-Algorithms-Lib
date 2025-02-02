@@ -7,12 +7,13 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
+#include <dal/platform/host.hpp>
 
 namespace Dal {
     /*
      * PRIVATE INHERITANCE from STL class vector
      * DON'T add any member variable to this class
-     * DON"T override any methods from vector
+     * DON'T override any methods from vector
      */
     template <class E_> class Vector_ : private std::vector<E_> {
         using base_t = std::vector<E_>;
@@ -74,6 +75,7 @@ namespace Dal {
         using std::vector<E_>::empty;
         using std::vector<E_>::operator[];
         using std::vector<E_>::begin;
+        using std::vector<E_>::cbegin;
         using std::vector<E_>::end;
         using std::vector<E_>::rbegin;
         using std::vector<E_>::rend;
@@ -85,22 +87,23 @@ namespace Dal {
         using std::vector<E_>::reserve;
         using std::vector<E_>::clear;
 
+        E_& operator()(size_t i) { return (*this)[i];}
+        const E_& operator()(size_t i) const { return (*this)[i];}
+
         // emplace_back is a special case; because it is not part of std::vector<bool>, we have to explicitly forward
-        template <class... _Valty> void emplace_back(_Valty&&... _Val) { base_t::emplace_back(_Val...); }
+        template <class... ValType> void emplace_back(ValType&&... Val) { base_t::emplace_back(Val...); }
     };
 
-    namespace {
-        template <class C1_, class C2_> bool EqualElements(const C1_& lhs, const C2_& rhs) {
-            for (auto pl = lhs.begin(), pr = rhs.begin(); pl != lhs.end(); ++pl, ++pr)
-                if (*pl != *pr)
-                    return false;
-            return true;
-        }
+    template <class C1_, class C2_> bool EqualElements(const C1_& lhs, const C2_& rhs) {
+        for (auto pl = lhs.begin(), pr = rhs.begin(); pl != lhs.end(); ++pl, ++pr)
+            if (*pl != *pr)
+                return false;
+        return true;
+    }
 
-        template <class E_> bool Equal(const Vector_<E_>& lhs, const Vector_<E_>& rhs) {
-            return lhs.size() == rhs.size() && EqualElements(lhs, rhs);
-        }
-    } // namespace
+    template <class E_> bool Equal(const Vector_<E_>& lhs, const Vector_<E_>& rhs) {
+        return lhs.size() == rhs.size() && EqualElements(lhs, rhs);
+    }
 
     namespace Vector {
 
@@ -117,22 +120,28 @@ namespace Dal {
         template <class E_> Vector_<E_> XRange(E_ start, E_ finish, size_t points) {
             Vector_<E_> x(points);
             E_ dx = (finish - start) / (points - 1);
-            for (int i = 0; i < points - 1; ++i)
+            for (size_t i = 0; i < points - 1; ++i)
                 x[i] = start + i * dx;
             x[points - 1] = finish;
             return x;
         }
     } // namespace Vector
 
-    template <class E_> inline bool Vector_<E_>::operator==(const Vector_<E_>& rhs) const { return Equal(*this, rhs); }
+    template <class E_> FORCE_INLINE bool Vector_<E_>::operator==(const Vector_<E_>& rhs) const { return Equal(*this, rhs); }
 
-    template <class E_> inline bool Vector_<E_>::operator!=(const Vector_<E_>& rhs) const { return !Equal(*this, rhs); }
+    template <class E_> FORCE_INLINE bool Vector_<E_>::operator!=(const Vector_<E_>& rhs) const { return !Equal(*this, rhs); }
 
-    template <class E_> inline auto operator*(const Vector_<E_>& left, const E_& right) {
+    template <class E_> FORCE_INLINE auto operator*(const Vector_<E_>& left, const E_& right) {
         Vector_<E_> ret(left.size());
         std::transform(left.begin(), left.end(), ret.begin(), [&right](const E_& val) { return right * val; });
         return ret;
     }
 
-    template <class E_> inline auto operator*(const E_& left, const Vector_<E_>& right) { return right * left; }
+    template <class E_> FORCE_INLINE auto operator*(const E_& left, const Vector_<E_>& right) { return right * left; }
+
+    template <class E_> FORCE_INLINE auto operator*(const Vector_<E_>& left, const Vector_<E_>& right) {
+        Vector_<E_> ret(left.size());
+        std::transform(left.begin(), left.end(), right.begin(), ret.begin(), [](const E_& val1, const E_& val2) { return val1 * val2; });
+        return ret;
+    }
 } // namespace Dal

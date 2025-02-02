@@ -15,90 +15,51 @@
 #include <dal/math/aad/blocklist.hpp>
 #include <dal/math/aad/node.hpp>
 
-namespace Dal {
+
+namespace Dal::AAD {
+    class Number_;
     constexpr size_t BLOCK_SIZE = 16384;
     constexpr size_t ADJ_SIZE = 32768;
     constexpr size_t DATA_SIZE = 65536;
 
     class Tape_ {
         static bool multi_;
-        BlockList_<double, ADJ_SIZE> adjoints_multi_;
+        BlockList_<double, ADJ_SIZE> adjointsMulti_;
         BlockList_<double, DATA_SIZE> ders_;
-        BlockList_<double*, DATA_SIZE> arg_ptrs_;
-        BlockList_<Node_, BLOCK_SIZE> nodes_;
-
+        BlockList_<double*, DATA_SIZE> argPtrs_;
+        BlockList_<TapNode_, BLOCK_SIZE> nodes_;
         char pad_[64];
-        friend auto SetNumResultsForAAD(bool, const size_t&);
+
+        friend auto SetNumResultsForAAD(bool, size_t);
         friend struct NumResultsResetterForAAD_;
         friend class Number_;
 
     public:
-        template <size_t N_> Node_* RecordNode() {
-            Node_* node = nodes_.EmplaceBack(N_);
+        template <size_t N_> TapNode_* RecordNode() {
+            TapNode_* node = nodes_.EmplaceBack(N_);
             if (multi_) {
-                node->p_adjoints_ = adjoints_multi_.EmplaceBackMulti(Node_::num_adj_);
-                std::fill(node->p_adjoints_, node->p_adjoints_ + Node_::num_adj_, 0.0);
+                node->pAdjoints_ = adjointsMulti_.EmplaceBackMulti(TapNode_::numAdj_);
+                std::fill(node->pAdjoints_, node->pAdjoints_ + TapNode_::numAdj_, 0.0);
             }
 
             if constexpr (static_cast<bool>(N_)) {
-                node->p_derivatives_ = ders_.EmplaceBackMulti<N_>();
-                node->p_adj_ptrs_ = arg_ptrs_.EmplaceBackMulti<N_>();
+                node->pDerivatives_ = ders_.EmplaceBackMulti<N_>();
+                node->pAdjPtrs_ = argPtrs_.EmplaceBackMulti<N_>();
             }
             return node;
         }
 
-        void ResetAdjoints() {
-            if (multi_)
-                adjoints_multi_.Memset(0);
-            else {
-                for (auto it = nodes_.Begin(); it != nodes_.End(); ++it)
-                    it->adjoint_ = 0.;
-            }
-        }
+        void ResetAdjoints();
+        void Clear();
 
-        void Clear() {
-            adjoints_multi_.Clear();
-            ders_.Clear();
-            arg_ptrs_.Clear();
-            nodes_.Clear();
-        }
+        using Iterator_ = typename BlockList_<TapNode_, BLOCK_SIZE>::Iterator_;
+        Iterator_ Begin() { return nodes_.Begin(); }
+        Iterator_ End() { return nodes_.End(); }
+        Iterator_ Find(TapNode_* node) { return nodes_.Find(node); }
 
-        void Rewind() {
-#ifndef NDEBUG
-            Clear();
-#else
-            if (multi_)
-                adjoints_multi_.Rewind();
-            ders_.Rewind();
-            arg_ptrs_.Rewind();
-            nodes_.Rewind();
-#endif
-        }
-
-        void Mark() {
-            if (multi_)
-                adjoints_multi_.SetMark();
-            ders_.SetMark();
-            arg_ptrs_.SetMark();
-            nodes_.SetMark();
-        }
-
-        void RewindToMark() {
-            if (multi_)
-                adjoints_multi_.RewindToMark();
-            ders_.RewindToMark();
-            arg_ptrs_.RewindToMark();
-            nodes_.RewindToMark();
-        }
-
-        using Iterator_ = typename BlockList_<Node_, BLOCK_SIZE>::Iterator_;
-
-        auto Begin() { return nodes_.Begin(); }
-
-        auto End() { return nodes_.End(); }
-
-        auto MarkIt() { return nodes_.Mark(); }
-
-        auto Find(Node_* node) { return nodes_.Find(node); }
+        void Mark();
+        void RewindToMark();
+        void Rewind();
+        Iterator_ MarkIt();
     };
-} // namespace Dal
+} // namespace Dal::AAD

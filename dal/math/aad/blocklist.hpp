@@ -17,41 +17,51 @@
 #include <iterator>
 #include <list>
 
-namespace Dal {
+namespace Dal::AAD {
 
     template <class T_, size_t BLOCK_SIZE_> class BlockList_ {
     private:
         std::list<std::array<T_, BLOCK_SIZE_>> data_;
-        using list_iter = decltype(data_.begin());
-        using block_iter = decltype(data_.back().begin());
+        using iterator = typename std::list<std::array<T_, BLOCK_SIZE_>>::iterator;
+        using const_iterator = typename std::list<std::array<T_, BLOCK_SIZE_>>::const_iterator;
+        using block_iter = typename std::array<T_, BLOCK_SIZE_>::iterator;
+        using const_block_iter = typename std::array<T_, BLOCK_SIZE_>::const_iterator;
 
-        list_iter curr_block_;
-        list_iter last_block_;
+        iterator currBlock_;
+        iterator lastBlock_;
 
-        block_iter next_space_;
-        block_iter last_space_;
+        block_iter nextSpace_;
+        block_iter lastSpace_;
 
-        list_iter marked_block_;
-        block_iter marked_space_;
+        iterator markedBlock_;
+        block_iter markedSpace_;
 
         void NewBlock() {
             data_.emplace_back();
-            curr_block_ = last_block_ = std::prev(data_.end());
-            next_space_ = curr_block_->begin();
-            last_space_ = curr_block_->end();
+            currBlock_ = lastBlock_ = std::prev(data_.end());
+            nextSpace_ = currBlock_->begin();
+            lastSpace_ = currBlock_->end();
         }
 
         void NextBlock() {
-            if (curr_block_ == last_block_)
+            if (currBlock_ == lastBlock_)
                 NewBlock();
             else {
-                ++curr_block_;
-                next_space_ = curr_block_->begin();
-                last_space_ = curr_block_->end();
+                ++currBlock_;
+                nextSpace_ = currBlock_->begin();
+                lastSpace_ = currBlock_->end();
             }
         }
 
     public:
+        struct BlockPosition_ {
+            iterator currBlock_;
+            block_iter nextSpace_;
+
+            BlockPosition_() = default;
+            BlockPosition_(iterator curr_block, block_iter next_space): currBlock_(curr_block), nextSpace_(next_space) {}
+        };
+
         BlockList_() { NewBlock(); }
 
         void Clear() {
@@ -60,9 +70,16 @@ namespace Dal {
         }
 
         void Rewind() {
-            curr_block_ = data_.begin();
-            next_space_ = curr_block_->begin();
-            last_space_ = curr_block_->end();
+            currBlock_ = data_.begin();
+            nextSpace_ = currBlock_->begin();
+            lastSpace_ = currBlock_->end();
+        }
+
+        [[nodiscard]] int Size() const {
+            int count = 0;
+            for(ConstIterator_ it = this->Begin(); it != this->End(); ++it)
+                count += 1;
+            return count;
         }
 
         void Memset(unsigned char val) {
@@ -71,105 +88,184 @@ namespace Dal {
         }
 
         template <typename... Args_> T_* EmplaceBack(Args_&&... args) {
-            if (next_space_ == last_space_)
+            if (nextSpace_ == lastSpace_)
                 NextBlock();
-            T_* emplaced = new (&*next_space_) T_(std::forward<Args_>(args)...);
-            ++next_space_;
+            T_* emplaced = new (&*nextSpace_) T_(std::forward<Args_>(args)...);
+            ++nextSpace_;
             return emplaced;
         }
 
         T_* EmplaceBack() {
-            if (next_space_ == last_space_)
+            if (nextSpace_ == lastSpace_)
                 NextBlock();
-            auto old_next = next_space_;
-            ++next_space_;
+            auto old_next = nextSpace_;
+            ++nextSpace_;
             return &*old_next;
         }
 
         template <size_t N_> T_* EmplaceBackMulti() {
-            if (std::distance(next_space_, last_space_) < static_cast<int>(N_))
-                NewBlock();
-            auto old_next = next_space_;
-            next_space_ += N_;
+            if (std::distance(nextSpace_, lastSpace_) < static_cast<int>(N_))
+                NextBlock();
+            auto old_next = nextSpace_;
+            nextSpace_ += N_;
             return &*old_next;
         }
 
         T_* EmplaceBackMulti(const size_t& n) {
-            if (std::distance(next_space_, last_space_) < static_cast<int>(n))
-                NewBlock();
-            auto old_next = next_space_;
-            next_space_ += n;
+            if (std::distance(nextSpace_, lastSpace_) < static_cast<int>(n))
+                NextBlock();
+            auto old_next = nextSpace_;
+            nextSpace_ += n;
             return &*old_next;
         }
 
         void SetMark() {
-            if (next_space_ == last_space_)
+            if (nextSpace_ == lastSpace_)
                 NextBlock();
-            marked_block_ = curr_block_;
-            marked_space_ = next_space_;
+            markedBlock_ = currBlock_;
+            markedSpace_ = nextSpace_;
+        }
+
+        auto GetPosition() {
+            if (nextSpace_ == lastSpace_)
+                NextBlock();
+            return Iterator_(currBlock_, nextSpace_, currBlock_->begin(), currBlock_->end());
+        }
+
+        auto GetPosition() const {
+            if (nextSpace_ == lastSpace_)
+                NextBlock();
+            return ConstIterator_(currBlock_, nextSpace_, currBlock_->begin(), currBlock_->end());
+        }
+
+        auto GetZeroPosition() {
+            return Iterator_(data_.begin(), data_.begin()->begin(), data_.begin()->begin(), data_.begin()->end());
+        }
+
+        auto GetZeroPosition() const {
+            return ConstIterator_(data_.begin(), data_.begin()->begin(), data_.begin()->begin(), data_.begin()->end());
         }
 
         void RewindToMark() {
-            curr_block_ = marked_block_;
-            next_space_ = marked_space_;
-            last_space_ = curr_block_->end();
+            currBlock_ = markedBlock_;
+            nextSpace_ = markedSpace_;
+            lastSpace_ = currBlock_->end();
         }
 
-        class Iterator_ {
-        private:
-            list_iter curr_block_;
-            block_iter curr_space_;
-            block_iter first_space_;
-            block_iter last_space_;
 
+
+        class Iterator_ {
         public:
+            iterator currBlock_;
+            block_iter currSpace_;
+            block_iter firstSpace_;
+            block_iter lastSpace_;
+
             using difference_type = std::ptrdiff_t;
             using reference = T_&;
             using pointer = T_*;
             using value_type = T_;
             using iterator_category = std::bidirectional_iterator_tag;
 
-            Iterator_() {}
-
-            Iterator_(list_iter cb, block_iter cs, block_iter fs, block_iter ls)
-                : curr_block_(cb), curr_space_(cs), first_space_(fs), last_space_(ls) {}
+            Iterator_() = default;
+            Iterator_(iterator cb, block_iter cs, block_iter fs, block_iter ls)
+                : currBlock_(cb), currSpace_(cs), firstSpace_(fs), lastSpace_(ls) {}
 
             Iterator_& operator++() {
-                ++curr_space_;
-                if (curr_space_ == last_space_) {
-                    ++curr_block_;
-                    first_space_ = curr_block_->begin();
-                    last_space_ = curr_block_->end();
-                    curr_space_ = first_space_;
+                ++currSpace_;
+                if (currSpace_ == lastSpace_) {
+                    ++currBlock_;
+                    firstSpace_ = currBlock_->begin();
+                    lastSpace_ = currBlock_->end();
+                    currSpace_ = firstSpace_;
                 }
                 return *this;
+            }
+
+            inline const Iterator_& operator++() const {
+                return this->operator++();
             }
 
             Iterator_& operator--() {
-                if (curr_space_ == first_space_) {
-                    --curr_block_;
-                    first_space_ = curr_block_->begin();
-                    last_space_ = curr_block_->end();
-                    curr_space_ = last_space_;
+                if (currSpace_ == firstSpace_) {
+                    --currBlock_;
+                    firstSpace_ = currBlock_->begin();
+                    lastSpace_ = currBlock_->end();
+                    currSpace_ = lastSpace_;
                 }
-                --curr_space_;
+                --currSpace_;
                 return *this;
             }
 
-            T_& operator*() { return *curr_space_; }
+            inline const Iterator_& operator--() const {
+                return this->operator--();
+            }
 
-            const T_& operator*() const { return *curr_space_; }
+            T_& operator*() { return *currSpace_; }
 
-            T_* operator->() { return &*curr_space_; }
+            const T_& operator*() const { return *currSpace_; }
 
-            const T_* operator->() const { return &*curr_space_; }
+            T_* operator->() { return &*currSpace_; }
+
+            const T_* operator->() const { return &*currSpace_; }
 
             bool operator==(const Iterator_& rhs) {
-                return curr_block_ == rhs.curr_block_ && curr_space_ == rhs.curr_space_;
+                return currBlock_ == rhs.currBlock_ && currSpace_ == rhs.currSpace_;
             }
 
             bool operator!=(const Iterator_& rhs) {
-                return curr_block_ != rhs.curr_block_ || curr_space_ != rhs.curr_space_;
+                return currBlock_ != rhs.currBlock_ || currSpace_ != rhs.currSpace_;
+            }
+        };
+
+        class ConstIterator_ {
+        public:
+            const_iterator currBlock_;
+            const_block_iter currSpace_;
+            const_block_iter firstSpace_;
+            const_block_iter lastSpace_;
+
+            using difference_type = std::ptrdiff_t;
+            using reference = const T_&;
+            using pointer = const T_*;
+            using value_type = T_;
+            using iterator_category = std::bidirectional_iterator_tag;
+
+            ConstIterator_() = default;
+            ConstIterator_(const_iterator cb, const_block_iter cs, const_block_iter fs, const_block_iter ls)
+                : currBlock_(cb), currSpace_(cs), firstSpace_(fs), lastSpace_(ls) {}
+
+            ConstIterator_& operator++() {
+                ++currSpace_;
+                if (currSpace_ == lastSpace_) {
+                    ++currBlock_;
+                    firstSpace_ = currBlock_->begin();
+                    lastSpace_ = currBlock_->end();
+                    currSpace_ = firstSpace_;
+                }
+                return *this;
+            }
+
+            ConstIterator_& operator--() {
+                if (currSpace_ == firstSpace_) {
+                    --currBlock_;
+                    firstSpace_ = currBlock_->begin();
+                    lastSpace_ = currBlock_->end();
+                    currSpace_ = lastSpace_;
+                }
+                --currSpace_;
+                return *this;
+            }
+
+            const T_& operator*() const { return *currSpace_; }
+            const T_* operator->() const { return &*currSpace_; }
+
+            bool operator==(const ConstIterator_& rhs) {
+                return currBlock_ == rhs.currBlock_ && currSpace_ == rhs.currSpace_;
+            }
+
+            bool operator!=(const ConstIterator_& rhs) {
+                return currBlock_ != rhs.currBlock_ || currSpace_ != rhs.currSpace_;
             }
         };
 
@@ -177,10 +273,34 @@ namespace Dal {
             return Iterator_(data_.begin(), data_.begin()->begin(), data_.begin()->begin(), data_.begin()->end());
         }
 
-        Iterator_ End() { return Iterator_(curr_block_, next_space_, curr_block_->begin(), curr_block_->end()); }
+        inline Iterator_ begin() {
+            return Begin();
+        }
+
+        Iterator_ End() { return Iterator_(currBlock_, nextSpace_, currBlock_->begin(), currBlock_->end()); }
+
+        inline Iterator_ end() {
+            return End();
+        }
+
+        ConstIterator_ Begin() const {
+            return ConstIterator_(data_.begin(), data_.begin()->begin(), data_.begin()->begin(), data_.begin()->end());
+        }
+
+        inline ConstIterator_ begin() const {
+            return Begin();
+        }
+
+        ConstIterator_ End() const {
+            return ConstIterator_(currBlock_, nextSpace_, currBlock_->begin(), currBlock_->end());
+        }
+
+        inline ConstIterator_ end() const {
+            return End();
+        }
 
         Iterator_ Mark() {
-            return Iterator_(marked_block_, marked_space_, marked_block_->begin(), marked_block_->end());
+            return Iterator_(markedBlock_, markedSpace_, markedBlock_->begin(), markedBlock_->end());
         }
 
         Iterator_ Find(const T_* const element) {
@@ -197,6 +317,12 @@ namespace Dal {
                 return it;
 
             return End();
+        }
+
+        void RewindTo(const Iterator_& position) {
+            currBlock_ = position.currBlock_;
+            nextSpace_ = position.currSpace_;
+            lastSpace_ = currBlock_->end();
         }
     };
 } // namespace Dal
