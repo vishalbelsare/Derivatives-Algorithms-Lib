@@ -1,13 +1,10 @@
-#add_custom_command(OUTPUT ${QL_GENERATED_HEADERS}
-#        COMMAND ${CMAKE_COMMAND}
-#        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
-#        -DBINARY_DIR=${CMAKE_BINARY_DIR}
-#        -P ${CMAKE_SOURCE_DIR}/cmake/GenerateHeaders.cmake
-#        COMMENT "Generating headers..."
-#        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+if (MSVC)
+    add_definitions(-DIS_BASE)
+endif()
 
-file(GLOB_RECURSE DAL_FILES "*.hpp" "*.cpp")
+file(GLOB_RECURSE DAL_FILES "*.h" "*.hpp" "*.cpp")
 list(FILTER DAL_FILES EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/dal/auto/.*")
+list(FILTER DAL_FILES EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/dal/storage/_repository.*")
 
 add_library(dal_library ${DAL_FILES})
 

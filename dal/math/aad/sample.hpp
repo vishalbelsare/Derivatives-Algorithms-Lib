@@ -5,30 +5,30 @@
 #pragma once
 
 #include <dal/math/vectors.hpp>
-#include <dal/platform/platform.hpp>
 #include <dal/string/strings.hpp>
 
-namespace Dal {
+namespace Dal::AAD {
     /*
      * Scenarios
      */
 
     struct SampleDef_ {
         struct RateDef_ {
-            Time_ start_;
-            Time_ end_;
+            double start_;
+            double end_;
             String_ curve_;
 
-            RateDef_(const Time_& s, const Time_& e, const String_& c) : start_(s), end_(e), curve_(c) {}
+            RateDef_(double s, double e, String_ c) : start_(s), end_(e), curve_(std::move(c)) {}
         };
 
         bool numeraire_ = true;
-        Vector_<Time_> discountMats_;
+        Vector_<> discountMats_;
         Vector_<RateDef_> liborDefs_;
-        Vector_<Vector_<Time_>> forwardMats_;
+        Vector_<Vector_<>> forwardMats_;
     };
 
     template <class T_ = double> struct Sample_ {
+        T_ spot_;
         T_ numeraire_;
         Vector_<T_> discounts_;
         Vector_<T_> libors_;
@@ -43,6 +43,7 @@ namespace Dal {
         }
 
         void Initialize() {
+            spot_ = T_(0.0);
             numeraire_ = T_(1.0);
             std::fill(discounts_.begin(), discounts_.end(), T_(1.0));
             std::fill(libors_.begin(), libors_.end(), T_(1.0));

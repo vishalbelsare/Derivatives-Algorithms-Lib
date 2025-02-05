@@ -1,11 +1,9 @@
 #pragma once
 
 #include <dal/math/vectors.hpp>
-#include <dal/platform/platform.hpp>
 #include <dal/string/strings.hpp>
 #include <dal/time/date.hpp>
 #include <dal/utilities/exceptions.hpp>
-#include <set>
 
 /*IF---------------------------------------------------------
 enumeration DayBasis
@@ -31,6 +29,9 @@ namespace Dal {
             Date_ nominalStart_;
             Date_ nominalEnd_;
             int couponMonths_;
+
+            Context_(bool isLast, Date_ nominalStart, Date_ nominalEnd, int couponMonths)
+            : isLast_(isLast), nominalStart_(nominalStart), nominalEnd_(nominalEnd), couponMonths_(couponMonths) {}
         };
     } // namespace DayBasis
 

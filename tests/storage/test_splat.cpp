@@ -2,10 +2,12 @@
 // Created by wegamekinglc on 2020/11/24.
 //
 
+#include <gtest/gtest.h>
+#include <dal/platform/platform.hpp>
 #include <dal/math/interp/interp.hpp>
 #include <dal/math/vectors.hpp>
 #include <dal/storage/splat.hpp>
-#include <gtest/gtest.h>
+#include <dal/utilities/file.hpp>
 
 using namespace Dal;
 
@@ -33,4 +35,5 @@ TEST(SplatTest, TestSplatFileAndUnSplatFile) {
     Handle_<Interp1Linear_> val(std::dynamic_pointer_cast<const Interp1Linear_>(rtn));
     ASSERT_EQ(x, val->x());
     ASSERT_EQ(f, val->f());
+    File::Remove("src.csv");
 }

@@ -2,9 +2,8 @@
 // Created by wegam on 2020/12/16.
 //
 
-#include <dal/platform/platform.hpp>
-#include <dal/math/interp/interpcubic.hpp>
 #include <dal/platform/strict.hpp>
+#include <dal/math/interp/interpcubic.hpp>
 #include <dal/storage/archive.hpp>
 
 /*IF--------------------------------------------------------------------------
@@ -24,7 +23,7 @@ fpp is number[]
 namespace {
 
     using namespace Dal;
-#include <dal/auto/MG_Cubic1_Write.inc>
+
 } // namespace
 
 namespace Dal {
@@ -45,17 +44,15 @@ namespace Dal {
             Cubic1_(const String_& name, const Vector_<>& x, const Vector_<>& f, const Vector_<>& fpp)
                 : Interp1_(name), x_(x), f_(f), fpp_(fpp) {}
 
-            void Write(Archive::Store_& dst) const override { Cubic1::XWrite(dst, name_, x_, f_, fpp_); }
+            void Write(Archive::Store_& dst) const override;
         };
-
-#include <dal/auto/MG_Cubic1_Read.inc>
 
         // based on Numerical Recipes' splint
         double Cubic1_::operator()(double x) const {
             auto pGE = LowerBound(x_, x);
             if (pGE != x_.end() && *pGE == x)
                 return f_[pGE - x_.begin()];
-            const ptrdiff_t iGE = Min<ptrdiff_t>(x_.size() - 1, Max<ptrdiff_t>(1, pGE - x_.begin()));
+            const ptrdiff_t iGE = std::min(static_cast<ptrdiff_t>(x_.size() - 1), std::max(static_cast<ptrdiff_t>(1), pGE - x_.begin()));
             const ptrdiff_t iLT = iGE - 1;
             const double h = x_[iGE] - x_[iLT];
             const double b = (x - x_[iLT]) / h;
@@ -128,4 +125,9 @@ namespace Dal {
         const String_& name, const Vector_<>& x, const Vector_<>& f, const Boundary_& lhs, const Boundary_& rhs) {
         return new Cubic1_(name, x, f, lhs, rhs);
     }
+
+#include <dal/auto/MG_Cubic1_Read.inc>
+#include <dal/auto/MG_Cubic1_Write.inc>
+
+    void Cubic1_::Write(Archive::Store_& dst) const { Cubic1::XWrite(dst, name_, x_, f_, fpp_); }
 } // namespace Dal

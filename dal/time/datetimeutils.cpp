@@ -5,7 +5,6 @@
 #include <dal/platform/platform.hpp>
 #include <dal/platform/strict.hpp>
 #include <dal/time/datetimeutils.hpp>
-
 #include <dal/time/datetime.hpp>
 #include <dal/time/dateutils.hpp>
 #include <dal/utilities/algorithms.hpp>
@@ -19,7 +18,7 @@ namespace Dal {
             return false;
         if (!Date::IsDateString(String_(src.substr(0, space))))
             return false;
-        // accept anything with a date, space, something, colon, something
+        // Accept anything with a date, space, something, colon, something
         auto colon = src.find(':', space);
         return colon != String_::npos && colon > space + 1 && colon + 1 < src.size();
     }

@@ -2,396 +2,536 @@
 // Created by wegam on 2021/1/18.
 //
 
-#ifndef AADET_ENABLED
-
-#include <dal/math/aad/aad.hpp>
-#include <cmath>
 #include <gtest/gtest.h>
+#include <dal/platform/platform.hpp>
+#include <dal/math/aad/aad.hpp>
 
-using namespace Dal;
+using namespace Dal::AAD;
 
-TEST(AADNumberTest, TestNumberAdd) {
+TEST(AADTest, TestNumberAdd) {
 
-    Number_::tape_->Clear();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(1.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
 
-    Number_ s1(1.0);
-    Number_ s2(2.0);
+        Number_ value = s1 + s2;
+        value.PropagateToStart();
 
-    auto value = s1 + s2;
-    ASSERT_NEAR(value.Value(), 3.0, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+        ASSERT_NEAR(value.value(), 3.0, 1e-10);
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+    }
 
-    s1 = 1.0;
-    value = s1 + 2.0;
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 1.0;
+        s1.PutOnTape();
 
-    s2 = 2.0;
-    value = 1.0 + s2;
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = s1 + 2.0;
+        value.PropagateToStart();
+
+        ASSERT_NEAR(value.value(), 3.0, 1e-10);
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 2.0;
+        s2.PutOnTape();
+
+        Number_ value = 1.0 + s2;
+        value.PropagateToStart();
+
+        ASSERT_NEAR(value.value(), 3.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+    }
 }
 
-TEST(AADNumberTest, TestNumberSub) {
+TEST(AADTest, TestNumberSub) {
 
-    Number_::tape_->Clear();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(1.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
 
-    Number_ s1(1.0);
-    Number_ s2(2.0);
+        Number_ value = s1 - s2;
+        value.PropagateToStart();
 
-    auto value = s1 - s2;
-    ASSERT_NEAR(value.Value(), -1.0, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), -1.0, 1e-10);
-    Number_::tape_->Rewind();
+        ASSERT_NEAR(value.value(), -1.0, 1e-10);
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), -1.0, 1e-10);
+    }
 
-    s1 = 1.0;
-    value = s1 - 2.0;
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(1.0);
+        s1.PutOnTape();
 
-    s2 = 2.0;
-    value = 1.0 - s2;
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), -1.0, 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = s1 - 2.0;
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s2(2.0);
+        s2.PutOnTape();
+        
+        Number_ value = 1.0 - s2;
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), -1.0, 1e-10);
+    }
 }
 
-TEST(AADNumberTest, TestNumberMultiply) {
+TEST(AADTest, TestNumberMultiply) {
 
-    Number_::tape_->Clear();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(3.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
 
-    Number_ s1(3.0);
-    Number_ s2(2.0);
+        Number_ value = s1 * s2;
+        value.PropagateToStart();
+        ASSERT_NEAR(value.value(), 6.0, 1e-10);
+        ASSERT_NEAR(s1.Adjoint(), 2.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 3.0, 1e-10);
+    }
 
-    auto value = s1 * s2;
-    ASSERT_NEAR(value.Value(), 6.0, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 2.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 3.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 3.0;
+        s1.PutOnTape();
 
-    s1 = 3.0;
-    value = s1 * 2.0;
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 2.0, 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = s1 * 2.0;
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 2.0, 1e-10);
+    }
 
-    s2 = 2.0;
-    value = 3.0 * s2;
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), 3.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 2.0;
+        s2.PutOnTape();
+
+        Number_ value = 3.0 * s2;
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), 3.0, 1e-10);
+    }
 }
 
-TEST(AADNumberTest, TestNumberDivide) {
+TEST(AADTest, TestNumberDivide) {
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(3.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
 
-    Number_::tape_->Clear();
+        Number_ value = s1 / s2;
+        ASSERT_NEAR(value.value(), 1.5, 1e-10);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1. / s2.value(), 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), -s1.value() / s2.value() / s2.value(), 1e-10);
+    }
 
-    Number_ s1(3.0);
-    Number_ s2(2.0);
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 3.0;
+        s1.PutOnTape();
 
-    auto value = s1 / s2;
-    ASSERT_NEAR(value.Value(), 1.5, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1./ s2.Value(), 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), -s1.Value() / s2.Value() / s2.Value(), 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = s1 / 2.0;
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1. / 2.0, 1e-10);
+    }
 
-    s1 = 3.0;
-    value = s1 / 2.0;
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1. / 2.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 2.0;
+        s2.PutOnTape();
 
-    s2 = 2.0;
-    value = 3.0 / s2;
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), -3.0 / s2.Value() / s2.Value(), 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = 3.0 / s2;
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), -3.0 / s2.value() / s2.value(), 1e-10);
+    }
 }
 
-TEST(AADNumberTest, TestNumberPow) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberPow) {
 
-    Number_ s1(3.0);
-    Number_ s2(2.0);
-    auto value = Pow(s1, s2);
-    ASSERT_NEAR(value.Value(), std::pow(s1.Value(), s2.Value()), 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), s2.Value() * std::pow(s1.Value(), s2.Value() - 1), 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), value.Value() * std::log(s1.Value()), 1e-10);
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(3.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
 
-    s1 = 3.0;
-    value = Pow(s1, 2.0);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), s2.Value() * std::pow(s1.Value(), 1.0), 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = pow(s1, s2);
+        ASSERT_NEAR(value.value(), std::pow(s1.value(), s2.value()), 1e-10);
+        value.PropagateToStart();
 
-    s2 = 2.0;
-    value = Pow(3.0, s2);
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), value.Value() * std::log(3.0), 1e-10);
-    Number_::tape_->Rewind();
+        ASSERT_NEAR(s1.Adjoint(), s2.value() * std::pow(s1.value(), s2.value() - 1), 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), value.value() * std::log(s1.value()), 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 3.0;
+        Number_ s2(2.0);
+        s1.PutOnTape();
+
+        Number_ value = pow(s1, 2.0);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), s2.value() * std::pow(s1.value(), 1.0), 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 2.0;
+        s2.PutOnTape();
+
+        Number_ value = pow(3.0, s2);
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), value.value() * std::log(3.0), 1e-10);
+    }
 }
 
-TEST(AADNumberTest, TestNumberMax) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberMax) {
 
-    Number_ s1(3.0);
-    Number_ s2(2.0);
-    auto value = Max(s1, s2);
-    ASSERT_NEAR(value.Value(), 3.0, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(3.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
 
-    s1 = 3.0;
-    value = Max(s1, 2.0);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = max(s1, s2);
+        ASSERT_NEAR(value.value(), 3.0, 1e-10);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
+    }
 
-    s2 = 2.0;
-    value = Max(3.0, s2);
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 3.0;
+        s1.PutOnTape();
 
-    s1 = 2.0;
-    s2 = 3.0;
-    value = Max(s1, s2);
-    ASSERT_NEAR(value.Value(), 3.0, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+        Number_ value = max(s1, 2.0);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+    }
 
-    s1 = 2.0;
-    value = Max(s1, 3.0);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 2.0;
+        s2.PutOnTape();
 
-    s2 = 3.0;
-    value = Max(2.0, s2);
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = max(3.0, s2);
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 2.0;
+        Number_ s2 = 3.0;
+        s1.PutOnTape();
+        s2.PutOnTape();
+
+        Number_ value = max(s1, s2);
+        ASSERT_NEAR(value.value(), 3.0, 1e-10);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 2.0;
+        s1.PutOnTape();
+
+        Number_ value = max(s1, 3.0);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 3.0;
+        s2.PutOnTape();
+
+        Number_ value = max(2.0, s2);
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+    }
 }
 
-TEST(AADNumberTest, TestNumberMin) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberMin) {
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(3.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
 
-    Number_ s1(3.0);
-    Number_ s2(2.0);
-    auto value = Min(s1, s2);
-    ASSERT_NEAR(value.Value(), 2.0, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+        Number_ value = min(s1, s2);
+        ASSERT_NEAR(value.value(), 2.0, 1e-10);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+    }
 
-    s1 = 3.0;
-    value = Min(s1, 2.0);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 3.0;
+        s1.PutOnTape();
 
-    s2 = 2.0;
-    value = Min(3.0, s2);
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = min(s1, 2.0);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 0.0, 1e-10);
+    }
 
-    s1 = 2.0;
-    s2 = 3.0;
-    value = Min(s1, s2);
-    ASSERT_NEAR(value.Value(), 2.0, 1e-10);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 2.0;
+        s2.PutOnTape();
 
-    s1 = 2.0;
-    value = Min(s1, 3.0);
-    value.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+        Number_ value = min(3.0, s2);
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+    }
 
-    s2 = 3.0;
-    value = Min(2.0, s2);
-    value.PropagateToStart();
-    ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 2.0;
+        Number_ s2 = 3.0;
+        s1.PutOnTape();
+        s2.PutOnTape();
+
+        Number_ value = min(s1, s2);
+        ASSERT_NEAR(value.value(), 2.0, 1e-10);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 2.0;
+        s1.PutOnTape();
+
+        Number_ value = min(s1, 3.0);
+        value.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s2 = 3.0;
+        s2.PutOnTape();
+
+        Number_ value = min(2.0, s2);
+        value.PropagateToStart();
+        ASSERT_NEAR(s2.Adjoint(), 0.0, 1e-10);
+    }
 }
 
 
-TEST(AADNumberTest, TestNumberEqualAdd) {
+TEST(AADTest, TestNumberEqualAdd) {
 
-    Number_::tape_->Clear();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(1.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
+        
+        Number_ s3 = s1;
+        s3 += s2;
+        ASSERT_NEAR(s3.value(), 3.0, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
+    }
 
-    Number_ s1(1.0);
-    Number_ s2(2.0);
-
-    s1 += s2;
-    ASSERT_NEAR(s1.Value(), 3.0, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
-
-    s1 = 1.0;
-    s1 += 2.0;
-    ASSERT_NEAR(s1.Value(), 3.0, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = Number_(1.0);
+        s1.PutOnTape();
+        
+        Number_ s3 = s1;
+        s3 += 2.0;
+        ASSERT_NEAR(s3.value(), 3.0, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+    }
 }
 
 
-TEST(AADNumberTest, TestNumberEqualSub) {
+TEST(AADTest, TestNumberEqualSub) {
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(1.0);
+        Number_ s2(2.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
+        
+        Number_ s3 = s1;
+        s3 -= s2;
+        ASSERT_NEAR(s3.value(), -1.0, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), -1.0, 1e-10);
+    }
 
-    Number_::tape_->Clear();
-
-    Number_ s1(1.0);
-    Number_ s2(2.0);
-
-    s1 -= s2;
-    ASSERT_NEAR(s1.Value(), -1.0, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), -1.0, 1e-10);
-    Number_::tape_->Rewind();
-
-    s1 = 1.0;
-    s1 -= 2.0;
-    ASSERT_NEAR(s1.Value(), -1.0, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = Number_(1.0);
+        s1.PutOnTape();
+        
+        Number_ s3 = s1;
+        s3 -= 2.0;
+        ASSERT_NEAR(s3.value(), -1.0, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
+    }
 }
 
 
-TEST(AADNumberTest, TestNumberEqualMultiply) {
+TEST(AADTest, TestNumberEqualMultiply) {
 
-    Number_::tape_->Clear();
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(2.0);
+        Number_ s2(3.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
+        
+        Number_ s3 = s1;
+        s3 *= s2;
+        ASSERT_NEAR(s3.value(), 6.0, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 3.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), 2.0, 1e-10);
+    }
 
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 2.0;
+        s1.PutOnTape();
+
+        Number_ s3 = s1;
+        s3 *= 3.0;
+        ASSERT_NEAR(s3.value(), 6.0, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 3.0, 1e-10);
+    }
+}
+
+
+TEST(AADTest, TestNumberEqualDivide) {
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s1(2.0);
+        Number_ s2(3.0);
+        s1.PutOnTape();
+        s2.PutOnTape();
+
+        Number_ s3 = s1;
+        s3 /= s2;
+        ASSERT_NEAR(s3.value(), 0.66666666666666, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1 / 3.0, 1e-10);
+        ASSERT_NEAR(s2.Adjoint(), -2.0 / 9.0, 1e-10);
+    }
+
+    {
+        Number_::Tape()->Clear();
+        Number_ s1 = 2.0;
+        s1.PutOnTape();
+        
+        Number_ s3 = s1;
+        s3 /= 3.0;
+        ASSERT_NEAR(s3.value(), 0.66666666666666, 1e-10);
+        s3.PropagateToStart();
+        ASSERT_NEAR(s1.Adjoint(), 1 / 3.0, 1e-10);
+    }
+}
+
+
+TEST(AADTest, TestNumberNegative) {
+    Number_::Tape()->Clear();
     Number_ s1(2.0);
-    Number_ s2(3.0);
-
-    s1 *= s2;
-    ASSERT_NEAR(s1.Value(), 6.0, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), 2.0, 1e-10);
-    Number_::tape_->Rewind();
-
-    s1 = 2.0;
-    s1 *= 3.0;
-    ASSERT_NEAR(s1.Value(), 6.0, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
-}
-
-
-TEST(AADNumberTest, TestNumberEqualDivide) {
-
-    Number_::tape_->Clear();
-
-    Number_ s1(2.0);
-    Number_ s2(3.0);
-
-    s1 /= s2;
-    ASSERT_NEAR(s1.Value(), 0.66666666666666, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    ASSERT_NEAR(s2.Adjoint(), -2.0 / 9.0, 1e-10);
-    Number_::tape_->Rewind();
-
-    s1 = 2.0;
-    s1 /= 3.0;
-    ASSERT_NEAR(s1.Value(), 0.66666666666666, 1e-10);
-    s1.PropagateToStart();
-    ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
-}
-
-
-TEST(AADNumberTest, TestNumberNegative) {
-    Number_::tape_->Clear();
-    Number_ s1(2.0);
-
-    auto value = -s1;
-    ASSERT_NEAR(value.Value(), -2.0, 1e-10);
+    s1.PutOnTape();
+    
+    Number_ value = -s1;
+    ASSERT_NEAR(value.value(), -2.0, 1e-10);
     value.PropagateToStart();
     ASSERT_NEAR(s1.Adjoint(), -1.0, 1e-10);
-    Number_::tape_->Rewind();
 }
 
 
-TEST(AADNumberTest, TestNumberPositive) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberPositive) {
+    Number_::Tape()->Clear();
     Number_ s1(2.0);
+    s1.PutOnTape();
 
-    auto value = +s1;
-    ASSERT_NEAR(value.Value(), 2.0, 1e-10);
+    Number_ value = +s1;
+    ASSERT_NEAR(value.value(), 2.0, 1e-10);
     value.PropagateToStart();
     ASSERT_NEAR(s1.Adjoint(), 1.0, 1e-10);
-    Number_::tape_->Rewind();
 }
 
 
-TEST(AADNumberTest, TestNumberExp) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberExp) {
+    Number_::Tape()->Clear();
     Number_ s1(2.0);
+    s1.PutOnTape();
 
-    auto value = Exp(s1);
-    ASSERT_NEAR(value.Value(), std::exp(2.0), 1e-10);
+    Number_ value = exp(s1);
+    ASSERT_NEAR(value.value(), std::exp(2.0), 1e-10);
     value.PropagateToStart();
     ASSERT_NEAR(s1.Adjoint(), std::exp(2.0), 1e-10);
-    Number_::tape_->Rewind();
 }
 
 
-TEST(AADNumberTest, TestNumberLog) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberLog) {
+    Number_::Tape()->Clear();
     Number_ s1(2.0);
+    s1.PutOnTape();
 
-    auto value = Log(s1);
-    ASSERT_NEAR(value.Value(), std::log(2.0), 1e-10);
+    Number_ value = log(s1);
+    ASSERT_NEAR(value.value(), std::log(2.0), 1e-10);
     value.PropagateToStart();
     ASSERT_NEAR(s1.Adjoint(), 0.5, 1e-10);
-    Number_::tape_->Rewind();
 }
 
 
-TEST(AADNumberTest, TestNumberSqrt) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberSqrt) {
+    Number_::Tape()->Clear();
     Number_ s1(2.0);
+    s1.PutOnTape();
 
-    auto value = Sqrt(s1);
-    ASSERT_NEAR(value.Value(), std::sqrt(2.0), 1e-10);
+    Number_ value = sqrt(s1);
+    ASSERT_NEAR(value.value(), std::sqrt(2.0), 1e-10);
     value.PropagateToStart();
     ASSERT_NEAR(s1.Adjoint(), 0.5 / std::sqrt(2.0), 1e-10);
-    Number_::tape_->Rewind();
 }
 
 
-TEST(AADNumberTest, TestNumberFabs) {
-    Number_::tape_->Clear();
+TEST(AADTest, TestNumberFabs) {
+    Number_::Tape()->Clear();
     Number_ s1(-2.0);
+    s1.PutOnTape();
 
-    auto value = Fabs(s1);
-    ASSERT_NEAR(value.Value(), 2.0, 1e-10);
+    Number_ value = fabs(s1);
+    ASSERT_NEAR(value.value(), 2.0, 1e-10);
     value.PropagateToStart();
     ASSERT_NEAR(s1.Adjoint(), -1.0, 1e-10);
-    Number_::tape_->Rewind();
 }
-
-#endif

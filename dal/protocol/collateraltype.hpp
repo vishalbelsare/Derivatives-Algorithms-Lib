@@ -18,19 +18,8 @@ alternative GC
 alternative NONE
 -IF-------------------------------------------------------------------------*/
 
-/*IF--------------------------------------------------------------------------
-enumeration Clearer
-   Identifies a clearinghouse
-switchable
-alternative CME
-alternative LCH
-method CollateralType_ Collateral() const;
--IF-------------------------------------------------------------------------*/
-
 namespace Dal {
     class String_;
 
 #include <dal/auto/MG_CollateralType_enum.hpp>
-#include <dal/auto/MG_Clearer_enum.hpp>
-
 } // namespace Dal

@@ -9,36 +9,40 @@
 
 namespace Dal {
     template <class E_> class Matrix_ {
-        Vector_<E_> vals_;
-        int cols_;
+    public:
         using I_ = typename Vector_<E_>::iterator;
         using CI_ = typename Vector_<E_>::const_iterator;
         using R_ = typename Vector_<E_>::reference;
         using CR_ = typename Vector_<E_>::const_reference;
-        Vector_<I_> hooks_;
 
+    private:
+        Vector_<E_> vals_;
+        int cols_;
+        Vector_<I_> hooks_;
         void SetHook(size_t from = 0);
 
     public:
         virtual ~Matrix_() = default;
         Matrix_() : cols_(0) {}
-        Matrix_(int rows, int cols)
-            : vals_(static_cast<size_t>(rows * cols)), cols_(cols), hooks_(static_cast<size_t>(rows)) {
+        Matrix_(int rows, int cols, E_ val = E_())
+            : vals_(static_cast<size_t>((rows + 1) * cols)), cols_(cols), hooks_(static_cast<size_t>(rows)) {
             SetHook();
-            vals_.Fill(E_());
+            vals_.Fill(val);
         }
         Matrix_(const Matrix_& src) : vals_(src.vals_), cols_(src.cols_), hooks_(src.hooks_.size()) { SetHook(); }
 
         int Rows() const { return static_cast<int>(hooks_.size()); }
         int Cols() const { return cols_; }
-        bool Empty() const { return vals_.empty(); }
+        bool Empty() const { return (vals_.size() - cols_) == 0; }
         void Clear() {
             vals_.clear();
             cols_ = 0;
             hooks_.clear();
         }
         CI_ First() const { return vals_.begin(); }
-        CI_ Last() const { return vals_.end(); }
+        inline CI_ begin() const { return First(); }
+        CI_ Last() const { return vals_.end() - cols_; }
+        inline CI_ end() const { return Last(); }
 
         CR_ operator()(int row, int col) const { return hooks_[row][col]; }
         R_ operator()(int row, int col) { return hooks_[row][col]; }
@@ -85,10 +89,13 @@ namespace Dal {
 
             const_iterator begin() const { return begin_; }
             const_iterator end() const { return end_; }
-            int size() const { return static_cast<int>(end_ - begin_); }
+            [[nodiscard]] int size() const { return static_cast<int>(end_ - begin_); }
             const E_& operator[](int col) const { return *(begin_ + col); }
             const E_& front() const { return *begin_; }
             const E_& back() const { return *(end_ - 1); }
+            operator Vector_<E_>() const {
+                return Vector_<E_>(begin(), end());
+            }
         };
 
         ConstRow_ Row(int i_row) const { return ConstRow_(hooks_[i_row], cols_); }
@@ -164,6 +171,10 @@ namespace Dal {
             };
             using iterator = Iterator_<typename Vector_<E_>::iterator>;
 
+            operator Vector_<E_>() const {
+                return Vector_<E_>(begin(), end());
+            }
+
         protected:
             iterator begin_; // non-const to support Column_, below
             size_t size_;
@@ -175,12 +186,12 @@ namespace Dal {
 
             const_iterator begin() const { return const_iterator(begin_.val_, begin_.stride_); }
             const_iterator end() const { return const_iterator(begin_.val_ + size_ * begin_.stride_, begin_.stride_); }
-            size_t size() const { return size_; }
+            [[nodiscard]] size_t size() const { return size_; }
             const E_& operator[](int row) const { return *(begin_.val_ + row * begin_.stride_); }
         };
         ConstCol_ Col(int i_col) const { return ConstCol_(hooks_[0] + i_col, hooks_.size(), cols_); }
 
-        class Col_ : ConstCol_ {
+        class Col_ : public ConstCol_ {
             using iterator = typename ConstCol_::iterator;
             using ConstCol_::begin_;
             using ConstCol_::size_;
@@ -213,13 +224,13 @@ namespace Dal {
         void Resize(int rows, int cols) {
             const auto old_rows = hooks_.size();
             if (cols == cols_ && rows * old_rows > 0) {
-                vals_.Resize(rows * cols);
+                vals_.Resize((rows + 1) * cols);
                 hooks_.Resize(rows);
                 SetHook(hooks_[0] == vals_.begin() ? old_rows : 0);
             } else {
-                const auto n_copy = Min(cols, cols_);
+                const auto n_copy = std::min(cols, cols_);
                 cols_ = cols;
-                Vector_<E_> new_vals(rows * cols);
+                Vector_<E_> new_vals((rows + 1) * cols);
                 for (int ir = 0; ir < rows && ir < old_rows; ++ir) {
                     copy(hooks_[ir], hooks_[ir] + n_copy, new_vals.begin() + ir * cols);
                 }

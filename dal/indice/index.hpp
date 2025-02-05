@@ -4,9 +4,21 @@
 
 #pragma once
 
+#include <dal/indice/fixings.hpp>
 #include <dal/utilities/environment.hpp>
 
 namespace Dal {
+    struct FixingsAccess_ : Environment_::Entry_ {
+        std::map<String_, Handle_<Fixings_>> fixings_;
+        Handle_<Fixings_> Fetch(const String_& name) const {
+            auto iter = fixings_.find(name);
+            if (iter != fixings_.end())
+                return iter->second;
+            else
+                return Handle_<Fixings_>();
+        }
+    };
+
     namespace Index {
         double PastFixing(_ENV, const String_& index_name, const DateTime_& fixing_time, bool quiet = false);
     }
@@ -14,7 +26,7 @@ namespace Dal {
     class Index_ : noncopyable {
     public:
         virtual ~Index_() = default;
-        virtual String_ Name() const = 0;
+        [[nodiscard]] virtual String_ Name() const = 0;
         virtual double Fixing(_ENV, const DateTime_& fixing_time) const;
     };
 

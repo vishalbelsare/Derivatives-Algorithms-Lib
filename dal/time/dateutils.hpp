@@ -1,6 +1,7 @@
 //
 // Created by wegam on 2020/10/25.
 //
+
 #pragma once
 
 namespace Dal {
@@ -12,5 +13,6 @@ namespace Dal {
         Date_ FromString(const String_& src);  // tries our best to recognize the string -- rejects both mm/dd/yyyy and
                                                // dd/mm/yyyy due to ambiguity
         int MonthFromFutureCode(char code);
+        Date_ Today();
     } // namespace Date
 } // namespace Dal

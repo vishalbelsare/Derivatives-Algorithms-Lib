@@ -2,8 +2,6 @@
 if (MSVC)
     # See cmake policy CMP00091
     # One of "MultiThreaded", "MultiThreadedDebug", "MultiThreadedDLL", "MultiThreadedDebugDLL"
-
-
     # Export all symbols so MSVC can populate the .lib and .dll
     if (BUILD_SHARED_LIBS)
         # Temp: disable DLL builds on MSVC
@@ -12,19 +10,13 @@ if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     endif()
 
-    INCLUDE_DIRECTORIES($ENV{GTEST_ROOT}/include)
-
-    set(MSVC_RUNTIME "dynamic" CACHE STRING "MSVC runtime to link")
-    set_property(CACHE MSVC_RUNTIME PROPERTY STRINGS static dynamic)
-
     if ("${MSVC_RUNTIME}" STREQUAL "static")
-        link_directories($ENV{GTEST_ROOT}/lib/${CMAKE_BUILD_TYPE}/MT)
         set(USE_MSVC_DYNAMIC_RUNTIME false)
     else()
-        link_directories($ENV{GTEST_ROOT}/lib/${CMAKE_BUILD_TYPE}/MD)
         set(USE_MSVC_DYNAMIC_RUNTIME true)
     endif()
 
+    message("-- MSVC_RUNTIME: ${USE_MSVC_DYNAMIC_RUNTIME}")
     set(CMAKE_MSVC_RUNTIME_LIBRARY
             "MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<BOOL:${USE_MSVC_DYNAMIC_RUNTIME}>:DLL>")
 
@@ -35,14 +27,30 @@ if (MSVC)
 
     # /wd26812
     # Suppress warnings: "Prefer enum class over enum" (Enum.3)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        SET(MSVC_COMPILER_OPTION /wd4267 /wd26812)
+    else()
+        SET(MSVC_COMPILER_OPTION /wd4267 /wd26812 /Qpar /Gy /arch:AVX2 /Oi /GL /Ot /Oy)
+    endif()
+    add_compile_options(${MSVC_COMPILER_OPTION})
+    message("-- MSVC COMPILER OPTION: ${MSVC_COMPILER_OPTION}")
 
-    add_compile_options(/wd4267 /wd26812)
     # Remove warnings
     add_definitions(-D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    if ("${USE_COVERAGE}" STREQUAL "true")
+        set(CMAKE_CXX_FLAGS "-march=native -fprofile-instr-generate -fcoverage-mapping")
+    else()
+        set(CMAKE_CXX_FLAGS "-march=native")
+    endif()
     message("-- CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftest-coverage -fprofile-arcs")
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    if ("${USE_COVERAGE}" STREQUAL "true")
+        set(CMAKE_CXX_FLAGS "-march=native -ftest-coverage -fprofile-arcs")
+    else()
+        set(CMAKE_CXX_FLAGS "-march=native")
+    endif()
     message("-- CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 endif()

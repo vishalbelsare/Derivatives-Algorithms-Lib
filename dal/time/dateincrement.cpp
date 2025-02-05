@@ -2,6 +2,7 @@
 // Created by Cheng Li on 2018/2/4.
 //
 
+#include <dal/platform/platform.hpp>
 #include <dal/platform/strict.hpp>
 #include <dal/time/dateincrement.hpp>
 #include <dal/time/holidays.hpp>
@@ -34,6 +35,7 @@ enumeration DateStepSize
     Repeatable step length
 alternative Y YEAR YEARS
 alternative M MONTH MONTHS
+alternative W WEEK WEEKS
 alternative BD BUS_DAY BUSINESS_DAY
 alternative CD CAL_DAY CALENDAR_DAY
 method Date_ operator() (const Date_& base, bool forward, int n_steps, const Holidays_& holidays) const;
@@ -121,6 +123,9 @@ namespace {
         case Value_::M:
             ret_val = Date::AddMonths(ret_val, n_steps * sign);
             break;
+        case Value_::W:
+            ret_val = ret_val.AddDays(7 * n_steps * sign);
+            break;
         case Value_::CD:
             ret_val = ret_val.AddDays(n_steps * sign);
             break;
@@ -165,6 +170,11 @@ namespace {
 } // namespace
 
 namespace Dal {
+    Handle_<Date::Increment_> Date::NBusDays(int n, const Holidays_& hols) {
+        static const DateStepSize_ BD("BD");
+        return Handle_<Date::Increment_>(new IncrementMultistep_(n, BD, hols));
+    }
+
     Handle_<Date::Increment_> Date::ToIMM(bool monthly) {
         static const Handle_<Date::Increment_> QUARTERLY(new IncrementNextSpecial_(SpecialDay_("IMM")));
         static const Handle_<Date::Increment_> MONTHLY(new IncrementNextSpecial_(SpecialDay_("IMM_MONTHLY")));

@@ -10,6 +10,7 @@ Vector_<DateStepSize_> DateStepSizeListAll() {
    if (TheDateStepSizeList().empty()) {
         TheDateStepSizeList().emplace_back("Y");
         TheDateStepSizeList().emplace_back("M");
+        TheDateStepSizeList().emplace_back("W");
         TheDateStepSizeList().emplace_back("BD");
         TheDateStepSizeList().emplace_back("CD");
    }
@@ -25,13 +26,15 @@ const char* DateStepSize_::String() const {
         return 0;
         case Value_::Y:
         return "Y";
-	case Value_::M:
+    case Value_::M:
         return "M";
-	case Value_::BD:
+    case Value_::W:
+        return "W";
+    case Value_::BD:
         return "BD";
-	case Value_::CD:
+    case Value_::CD:
         return "CD";
-	    
+        
     }}
 
 struct ReadStringDateStepSize_
@@ -46,32 +49,39 @@ struct ReadStringDateStepSize_
         { ret_val = false; }
         
 	else if (String::Equivalent(src, "Y"))
-		*val = DateStepSize_::Value_::Y;
+        *val = DateStepSize_::Value_::Y;
 	else if (String::Equivalent(src, "YEAR"))
-		*val = DateStepSize_::Value_::Y;
+        *val = DateStepSize_::Value_::Y;
 	else if (String::Equivalent(src, "YEARS"))
-		*val = DateStepSize_::Value_::Y;
+        *val = DateStepSize_::Value_::Y;
 
 	else if (String::Equivalent(src, "M"))
-		*val = DateStepSize_::Value_::M;
+        *val = DateStepSize_::Value_::M;
 	else if (String::Equivalent(src, "MONTH"))
-		*val = DateStepSize_::Value_::M;
+        *val = DateStepSize_::Value_::M;
 	else if (String::Equivalent(src, "MONTHS"))
-		*val = DateStepSize_::Value_::M;
+        *val = DateStepSize_::Value_::M;
+
+	else if (String::Equivalent(src, "W"))
+        *val = DateStepSize_::Value_::W;
+	else if (String::Equivalent(src, "WEEK"))
+        *val = DateStepSize_::Value_::W;
+	else if (String::Equivalent(src, "WEEKS"))
+        *val = DateStepSize_::Value_::W;
 
 	else if (String::Equivalent(src, "BD"))
-		*val = DateStepSize_::Value_::BD;
+        *val = DateStepSize_::Value_::BD;
 	else if (String::Equivalent(src, "BUSDAY"))
-		*val = DateStepSize_::Value_::BD;
+        *val = DateStepSize_::Value_::BD;
 	else if (String::Equivalent(src, "BUSINESSDAY"))
-		*val = DateStepSize_::Value_::BD;
+        *val = DateStepSize_::Value_::BD;
 
 	else if (String::Equivalent(src, "CD"))
-		*val = DateStepSize_::Value_::CD;
+        *val = DateStepSize_::Value_::CD;
 	else if (String::Equivalent(src, "CALDAY"))
-		*val = DateStepSize_::Value_::CD;
+        *val = DateStepSize_::Value_::CD;
 	else if (String::Equivalent(src, "CALENDARDAY"))
-		*val = DateStepSize_::Value_::CD;
+        *val = DateStepSize_::Value_::CD;
         else
             ret_val = false;
         return ret_val;

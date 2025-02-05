@@ -2,9 +2,10 @@
 // Created by wegamekinglc on 2020/5/1.
 //
 
+#include <dal/platform/platform.hpp>
 #include <dal/platform/strict.hpp>
 #include <dal/storage/archive.hpp>
-#include <map>
+
 
 namespace {
     std::map<Dal::String_, const Dal::Archive::Reader_*>& TheBuilders() {
@@ -31,7 +32,7 @@ namespace Dal {
             REQUIRE(!type.empty(), "No type supplied: can't extract a handle");
             NOTICE(type);
             auto pb = TheBuilders().equal_range(type);
-            REQUIRE(pb.first != pb.second, "Type has bo builder");
+            REQUIRE(pb.first != pb.second, "Type has no builder");
             REQUIRE(pb.first == --pb.second, "Builder is not unique");
             ret_val.reset(pb.first->second->Build(src, built));
         }

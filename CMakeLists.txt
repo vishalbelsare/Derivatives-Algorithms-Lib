@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.15.0)
 cmake_policy(SET CMP0091 NEW)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 # Version info
 set(DAL_VERSION_MAJOR 1)
 set(DAL_VERSION_MINOR 0)
@@ -12,7 +11,7 @@ set(DAL_VERSION_PATCH 0)
 set(DAL_VERSION ${DAL_VERSION_MAJOR}.${DAL_VERSION_MINOR}.${DAL_VERSION_PATCH})
 
 # Project Info
-set(PACKAGE_NAME          "DAL")
+set(PACKAGE_NAME          "dal")
 set(PACKAGE_VERSION       "${DAL_VERSION}-dev")
 set(PACKAGE_VERSION_HEX   "0x01000000")
 set(PACKAGE_STRING        "${PACKAGE_NAME} ${PACKAGE_VERSION}")
@@ -28,6 +27,7 @@ if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
             STRING "Build type for single-config generators" FORCE)
 endif()
 message("-- Build Mode: ${CMAKE_BUILD_TYPE}")
+message("-- MSVC_RUNTIME: ${MSVC_RUNTIME}")
 
 project(${PACKAGE_NAME} LANGUAGES CXX DESCRIPTION "The DAL C++ Library")
 
@@ -46,16 +46,6 @@ if (NOT DEFINED BUILD_SHARED_LIBS)
     set(BUILD_SHARED_LIBS ${UNIX})
 endif()
 
-# Boost static libs ON for MSVC
-if (NOT DEFINED Boost_USE_STATIC_LIBS)
-    set(Boost_USE_STATIC_LIBS ${MSVC})
-endif()
-
-# Boost static runtime ON for MSVC
-if (NOT DEFINED Boost_USE_STATIC_RUNTIME)
-    set(Boost_USE_STATIC_RUNTIME ${MSVC})
-endif()
-
 # Require C++11 or higher
 if (NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
@@ -70,26 +60,6 @@ if (NOT DEFINED CMAKE_CXX_EXTENSIONS)
     set(CMAKE_CXX_EXTENSIONS FALSE)
 endif()
 
-if (NOT DEFINED DAL_BOOST_VERSION)
-    # Boost 1.75.0 or greater required for compiling with C++20
-    if (CMAKE_CXX_STANDARD GREATER_EQUAL 20)
-        set(DAL_BOOST_VERSION 1.75.0)
-    else()
-        set(DAL_BOOST_VERSION 1.58.0)
-    endif()
-endif()
-
-find_package(Boost ${DAL_BOOST_VERSION} REQUIRED)
-if (Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-endif (Boost_FOUND)
-
-# Do not warn about Boost versions higher than 1.58.0
-set(Boost_NO_WARN_NEW_VERSIONS ON)
-
-# Avoid using Boost auto-linking
-add_compile_definitions(BOOST_ALL_NO_LIB)
-
 # If available, use PIC for shared libs and PIE for executables
 if (NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -103,10 +73,38 @@ endif()
 set(DAL_VERSION ${PACKAGE_VERSION})
 set(DAL_HEX_VERSION ${PACKAGE_VERSION_HEX})
 
+if (NOT DEFINED SKIP_TESTS)
+    set(SKIP_TESTS true)
+endif()
+
+if (NOT DEFINED USE_COVERAGE)
+    set(USE_COVERAGE false)
+endif()
+
 include(Platform)
 
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
+message("-- CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+message("-- CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message("-- CMAKE_CXX_STANDARD: ${CMAKE_CXX_STANDARD}")
+message("-- BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
+
+find_package(RapidJSON CONFIG REQUIRED)
+include_directories("${RapidJSON_INCLUDE_DIR}")
+message("-- RapidJSON INCLUDE DIR: ${RapidJSON_INCLUDE_DIR}")
+include_directories(${CMAKE_SOURCE_DIR})
+
+message("-- ADEPT INCLUDE DIR: ${PROJECT_SOURCE_DIR}/externals/adept/include")
+include_directories("${PROJECT_SOURCE_DIR}/externals/adept/build/include")
+link_directories("${PROJECT_SOURCE_DIR}/externals/adept/build/lib")
+
+message("-- USE AAD framework: AADET")
 
 add_subdirectory(dal)
+add_subdirectory(public)
 add_subdirectory(examples)
-add_subdirectory(tests)
+
+message("-- SKIP_TESTS: ${SKIP_TESTS}")
+if ("${SKIP_TESTS}" STREQUAL "false")
+    add_subdirectory(tests)
+endif()
+

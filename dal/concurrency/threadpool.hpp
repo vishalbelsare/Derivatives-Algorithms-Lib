@@ -13,8 +13,6 @@
 #pragma once
 
 #include <dal/concurrency/concurrentqueue.hpp>
-#include <dal/math/vectors.hpp>
-#include <dal/platform/platform.hpp>
 #include <future>
 #include <thread>
 
@@ -25,23 +23,27 @@ namespace Dal {
     class ThreadPool_ {
         static ThreadPool_ instance_;
         ConcurrentQueue_<Task_> queue_;
-        Vector_<std::thread> threads_;
+        std::vector<std::thread> threads_;
         bool active_;
         bool interrupt_;
         static thread_local size_t tlsNum_;
 
         void ThreadFunc(const size_t& num);
         //  The constructor stays private, ensuring single instance
-        ThreadPool_() : active_(false), interrupt_(false) {}
+        ThreadPool_() : active_(false), interrupt_(false) {
+            Start();
+        }
 
     public:
         static ThreadPool_* GetInstance() { return &instance_; }
 
-        size_t NumThreads() const { return threads_.size(); }
+        size_t NumThreads() const {
+            return threads_.size() + 1;
+        }
 
         static size_t ThreadNum() { return tlsNum_; }
 
-        void Start(const size_t& nThread = std::thread::hardware_concurrency() - 1);
+        void Start(size_t n_threads = std::thread::hardware_concurrency(), bool restart = false);
 
         ~ThreadPool_() { Stop(); }
 
@@ -55,7 +57,7 @@ namespace Dal {
         template <class C_> TaskHandle_ SpawnTask(C_ c) {
             Task_ t(std::move(c));
             TaskHandle_ f = t.get_future();
-            queue_.Push(move(t));
+            queue_.Push(std::move(t));
             return f;
         }
 
@@ -64,6 +66,6 @@ namespace Dal {
          * while waiting on a future,
          * return true if at least one task was run
          */
-        bool ActiveWaite(const TaskHandle_& f);
+        bool ActiveWait(const TaskHandle_& f);
     };
 } // namespace Dal
